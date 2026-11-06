@@ -1,0 +1,1496 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Трекер чтения книг</title>
+<style>
+  /* атрибут hidden всегда скрывает элемент, даже если у него задан display */
+  [hidden] { display: none !important; }
+  * { box-sizing: border-box; } 
+
+/* светлая тема */
+  :root {
+    --bg: #f5f5f5;
+    --header-bg: #ffffff;
+    --border-color: #d0d0d0;
+    --border-strong: #333333;
+
+    --text: #111111;
+    --muted: #666666;
+
+    --surface: #ffffff;
+    --card-hover: #fafafa;
+    --empty-bg: #f9f9f9;
+
+    --input-bg: #ffffff;
+    --input-invalid: #faeaea;
+    --focus-outline: #1a252f;
+
+    --btn: #e6e6e6;
+    --btn-hover: #d4d4d4;
+    --primary: #1a252f;
+    --primary-hover: #2c3e50;
+    --primary-text: #ffffff;
+    --danger: #b03a2e;
+    --danger-hover: #922b21;
+
+    --bar-bg: #e0e0e0;
+    --bar-fill: #1a252f;
+    --chart-fill: #1a252f;
+
+    --cover-base: 90%;
+    --cover-text: #1a252f;
+
+    --badge: #f0f0f0;
+    --badge-text: #333333;
+    --badge-reading-bg: #e0e0e0;
+    --badge-reading-text: #111111;
+    --badge-read-bg: #1a252f;
+    --badge-read-text: #ffffff;
+    --badge-planned-bg: #ffffff;
+    --badge-planned-text: #666666;
+
+    --quote-bg: #f9f9f9;
+
+    --error: #b03a2e;
+    --success: #1e5631;
+  }
+
+ /* темная тема */
+  body.dark {
+    --bg: #121212;
+    --header-bg: #181818;
+    --border-color: #333333;
+    --border-strong: #888888;
+
+    --text: #e0e0e0;
+    --muted: #888888;
+
+    --surface: #1e1e1e;
+    --card-hover: #252525;
+    --empty-bg: #181818;
+
+    --input-bg: #121212;
+    --input-invalid: #3b1c1c;
+    --focus-outline: #cccccc;
+
+    --btn: #2a2a2a;
+    --btn-hover: #3a3a3a;
+    --primary: #e0e0e0;
+    --primary-hover: #ffffff;
+    --primary-text: #121212;
+    --danger: #8b2e23;
+    --danger-hover: #a3382b;
+
+    --bar-bg: #2a2a2a;
+    --bar-fill: #e0e0e0;
+    --chart-fill: #e0e0e0;
+
+    --cover-base: 15%;
+    --cover-text: #e0e0e0;
+
+    --badge: #2a2a2a;
+    --badge-text: #b0b0b0;
+    --badge-reading-bg: #333333;
+    --badge-reading-text: #e0e0e0;
+    --badge-read-bg: #e0e0e0;
+    --badge-read-text: #121212;
+    --badge-planned-bg: #1e1e1e;
+    --badge-planned-text: #888888;
+
+    --quote-bg: #1e1e1e;
+
+    --error: #f5a6a6;
+    --success: #a6f5b8;
+  }
+
+  /* база базовая: контейнер со всем контентом */
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
+    background: var(--bg);
+    color: var(--text);
+    transition: background .15s, color .15s;
+    
+    display: flex;
+    height: 100vh;
+    overflow: hidden; /* запрет на скролл всего body, скроллиться будет только контент */
+  }
+
+/* стиль шрифта */
+  h1, h2, h3, .card-title, .detail-info h2 {
+    font-family: Georgia, 'Times New Roman', Times, serif;
+    font-weight: normal;
+  }
+
+/* боковая панель */
+  header {
+    width: 260px;
+    flex-shrink: 0; /* запрет на сжатие */
+    background: var(--header-bg);
+    border-right: 1px solid var(--border-color);
+    padding: 30px 20px;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    text-align: left;
+    transition: background .15s, border-color .15s;
+  }
+  header h1 {
+    margin: 0 0 30px;
+    font-size: 24px;
+    line-height: 1.2;
+    letter-spacing: 1px;
+  }
+  
+  /* навигация */
+  nav {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+  }
+  nav button {
+    border: none;
+    border-bottom: 1px solid var(--border-color);
+    border-left: 3px solid transparent;
+    background: transparent;
+    color: var(--muted);
+    padding: 12px 10px;
+    font-size: 14px;
+    font-family: inherit;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    text-align: left;
+    cursor: pointer;
+    transition: color .15s, border-color .15s, background .15s;
+  }
+  nav button:hover {
+    color: var(--text);
+    background: var(--card-hover);
+  }
+  nav button.active {
+    color: var(--text);
+    border-left-color: var(--border-strong);
+    font-weight: 600;
+  }
+
+  /* кнопка переключения темы */
+  .theme-toggle {
+    margin-top: auto; /* автоматический отступ сверху выталкивает кнопку вниз */
+    border: 1px solid var(--border-color);
+    background: var(--header-bg);
+    color: var(--text);
+    padding: 10px 12px;
+    font-family: inherit;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+    width: 100%;
+    transition: background .15s, border-color .15s;
+  }
+  .theme-toggle:hover { 
+    background: var(--btn);
+    border-color: var(--border-strong);
+  }
+
+  /* основной контент */
+  main { 
+    flex: 1; 
+    padding: 40px; 
+    overflow-y: auto; /* скролл */
+    height: 100%;
+  }
+  
+  /* ограничение максимальной ширины для удобного чтения */
+  main > section {
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+
+  section > h2 {
+    font-size: 26px;
+    margin: 0 0 24px;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 10px;
+  }
+
+  /* --- фильтры --- */
+  .toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    background: var(--surface);
+    border: 1px solid var(--border-color);
+    padding: 16px;
+    margin-bottom: 24px;
+    transition: background .15s, border-color .15s;
+  }
+  .toolbar .field { margin: 0; min-width: 180px; flex: 1 1 180px; }
+  .toolbar label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px;}
+
+  /* --- ввод и форма --- */
+  .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+  .field label { font-size: 13px; color: var(--muted); }
+  
+  input, select, textarea {
+    width: 100%;
+    border: 1px solid var(--border-color);
+    background: var(--input-bg);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 14px;
+    padding: 10px 12px;
+    transition: background .15s, color .15s, border-color .15s;
+  }
+  input:focus, select:focus, textarea:focus { 
+    outline: none;
+    border-color: var(--focus-outline);
+  }
+  textarea { resize: vertical; min-height: 100px; }
+
+  input.invalid, textarea.invalid, select.invalid { 
+    background: var(--input-invalid);
+    border-color: var(--error);
+  }
+  .error { font-size: 12px; color: var(--error); min-height: 15px; }
+  .counter { font-size: 12px; color: var(--muted); }
+
+  /* Обертка для кастомной загрузки файла */
+  .upload-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .upload-wrapper .btn {
+    padding: 8px 16px;
+    font-size: 13px;
+  }
+
+  /* --- кнопки --- */
+  .btn {
+    border: 1px solid transparent;
+    background: var(--btn);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 14px;
+    padding: 10px 20px;
+    cursor: pointer;
+    transition: background .15s, border-color .15s;
+  }
+  .btn:hover { background: var(--btn-hover); }
+  .btn-primary { background: var(--primary); color: var(--primary-text); border-color: var(--primary); }
+  .btn-primary:hover { background: var(--primary-hover); border-color: var(--primary-hover); }
+  .btn-danger { background: var(--danger); color: #fff; border-color: var(--danger); }
+  .btn-danger:hover { background: var(--danger-hover); border-color: var(--danger-hover); }
+
+  .form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 16px;
+    margin-top: 10px;
+  }
+  .form-message { font-size: 14px; color: var(--success); }
+
+  /* --- сетка карточек книг --- */
+  .book-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 20px;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border-color);
+    padding: 16px;
+    cursor: pointer;
+    transition: background .15s, border-color .15s;
+  }
+  .card:hover { 
+    background: var(--card-hover);
+    border-color: var(--border-strong);
+  }
+  
+  /* обложка книги */
+  .cover {
+    aspect-ratio: 2 / 3;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: Georgia, 'Times New Roman', Times, serif;
+    font-size: 48px;
+    color: var(--cover-text);
+    border: 1px solid var(--border-color);
+    background: hsl(0, 0%, calc(var(--cover-base) + var(--shade, 0) * 1%));
+    margin-bottom: 16px;
+    user-select: none;
+    transition: background .15s, color .15s, border-color .15s;
+    
+    /* Для картинок */
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+  }
+  
+  .card-title {
+    margin: 0 0 6px;
+    font-size: 18px;
+    line-height: 1.3;
+  }
+  .card-author {
+    margin: 0 0 12px;
+    font-size: 14px;
+    color: var(--muted);
+    font-style: italic;
+  }
+  .card-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  /* статус и рейтинг */
+  .badge {
+    font-size: 11px;
+    padding: 2px 8px;
+    background: var(--badge);
+    color: var(--badge-text);
+    border: 1px solid transparent;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .badge.status-reading { background: var(--badge-reading-bg); color: var(--badge-reading-text); border-color: var(--border-color); }
+  .badge.status-read { background: var(--badge-read-bg); color: var(--badge-read-text); }
+  .badge.status-planned { background: var(--badge-planned-bg); color: var(--badge-planned-text); border-color: var(--border-color); }
+  .badge.rating { background: transparent; color: var(--muted); padding-left: 0; border: none; }
+
+  /* --- полоса прогресса --- */
+  .bar { height: 6px; background: var(--bar-bg); overflow: hidden; margin-top: 8px; }
+  .bar-fill { height: 100%; background: var(--bar-fill); width: 0; transition: width .15s linear; }
+  .bar-caption { font-size: 12px; color: var(--muted); margin-top: 6px; text-align: right; }
+
+  /* заглушка при пустом списке */
+  .empty { padding: 32px; background: var(--empty-bg); border: 1px solid var(--border-color); color: var(--muted); text-align: center; }
+
+  /* --- детальная страница --- */
+  .detail-top {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 30px;
+    margin: 0 0 24px 0;
+  }
+  
+  .cover-lg { 
+    width: 100%; 
+    max-width: 240px; 
+    aspect-ratio: 2 / 3; 
+    margin: 0; 
+    flex: 0 0 auto; 
+    font-size: 72px; 
+  }
+  
+  .detail-info { flex: 1 1 300px; }
+  .detail-info h2 { margin: 0 0 10px; font-size: 32px; line-height: 1.2; }
+  .info-list {
+    list-style: none;
+    margin: 20px 0 0;
+    padding: 0;
+    font-size: 15px;
+  }
+  .info-list li { padding: 8px 0; border-bottom: 1px solid var(--border-color); }
+  .info-list span { color: var(--muted); display: inline-block; min-width: 140px; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+  .detail-block { background: var(--surface); border: 1px solid var(--border-color); padding: 20px; margin-bottom: 20px; transition: background .15s, border-color .15s; }
+  .detail-block h3 {
+    margin: 0 0 16px;
+    font-size: 18px;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 8px;
+  }
+  .row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-top: 12px; }
+  .row input[type="text"] { flex: 1 1 220px; }
+  .progress-controls { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; margin-top: 16px; }
+  .progress-controls input[type="range"] { flex: 1 1 240px; padding: 0; border: none; background: transparent; }
+  .progress-controls input[type="number"] { width: 110px; flex: 0 0 auto; }
+
+  /* цитаты */
+  .quote-list { list-style: none; margin: 0 0 12px; padding: 0; }
+  .quote-list li {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    background: var(--quote-bg);
+    border-left: 3px solid var(--border-strong);
+    padding: 12px 16px;
+    margin-bottom: 10px;
+    font-size: 15px;
+    font-style: italic;
+    transition: background .15s;
+  }
+  .quote-list li button {
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 12px;
+    text-transform: uppercase;
+    padding: 0;
+    margin-left: auto;
+    text-decoration: underline;
+  }
+  .quote-list li button:hover { color: var(--text); }
+
+  /* --- статистика --- */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+  .stat-card { 
+    background: var(--surface); 
+    border: 1px solid var(--border-color);
+    padding: 20px; 
+    text-align: center;
+    transition: background .15s, border-color .15s; 
+  }
+  .stat-value { font-size: 32px; font-family: Georgia, serif; margin-bottom: 4px; }
+  .stat-label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+
+  /* строка */
+  .chart-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 12px;
+    font-size: 14px;
+  }
+  .chart-label { flex: 0 0 140px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .chart-track { flex: 1 1 auto; height: 8px; background: var(--bar-bg); }
+  .chart-fill { height: 100%; background: var(--chart-fill); }
+  .chart-value { flex: 0 0 40px; text-align: right; color: var(--muted); font-family: monospace; font-size: 13px; }
+
+  /* --- адаптив для мобилки --- */
+  @media (max-width: 800px) {
+    body {
+      flex-direction: column;
+      height: auto;
+      overflow: auto;
+    }
+    header {
+      width: 100%;
+      height: auto;
+      border-right: none;
+      border-bottom: 1px solid var(--border-color);
+      padding: 20px;
+      text-align: center;
+    }
+    header h1 {
+      margin-bottom: 16px;
+    }
+    nav {
+      flex-direction: row;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+    nav button {
+      border-bottom: 2px solid transparent;
+      border-left: none;
+      padding: 5px 0;
+    }
+    nav button.active {
+      border-bottom-color: var(--border-strong);
+      border-left-color: transparent;
+    }
+    .theme-toggle {
+      margin-top: 20px;
+      width: auto;
+      display: inline-block;
+    }
+    main {
+      height: auto;
+      overflow: visible;
+      padding: 20px;
+    }
+  }
+</style>
+</head>
+<body>
+
+<!-- боковая панель ака шапка -->
+<header>
+  <h1>Трекер чтения книг</h1>
+  <nav>
+    <button type="button" data-section="books" class="active">Мои книги</button>
+    <button type="button" data-section="add">Добавить книгу</button>
+    <button type="button" data-section="stats">Статистика</button>
+  </nav>
+  <button class="theme-toggle" id="themeToggle" type="button">Сменить тему</button>
+</header>
+
+<main>
+
+<!-- раздел: мои книги -->
+  <section id="section-books">
+    <h2>Мои книги</h2>
+
+    <!-- фильтры и сортировка -->
+    <div class="toolbar">
+      <div class="field">
+        <label for="filterStatus">Статус</label>
+        <select id="filterStatus">
+          <option value="all">Все</option>
+          <option value="reading">Читаю</option>
+          <option value="read">Прочитано</option>
+          <option value="planned">Планирую</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="filterGenre">Жанр</label>
+        <select id="filterGenre"></select>
+      </div>
+      <div class="field">
+        <label for="sortBy">Сортировка</label>
+        <select id="sortBy">
+          <option value="date-desc">Сначала новые</option>
+          <option value="date-asc">Сначала старые</option>
+          <option value="title-asc">По названию (А–Я)</option>
+          <option value="author-asc">По автору (А–Я)</option>
+          <option value="rating-desc">По рейтингу</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- сюда JS вставляет карточки книг -->
+    <div class="book-grid" id="bookList"></div>
+  </section>
+
+  <!-- добавление книги -->
+  <section id="section-add" hidden>
+    <h2>Добавить книгу</h2>
+
+    <form id="bookForm" novalidate>
+      <div class="field">
+        <label for="f-title">Название книги</label>
+        <input id="f-title" name="title" type="text" autocomplete="off" placeholder="От 2 до 200 символов">
+        <span class="error" id="e-title"></span>
+      </div>
+
+      <div class="field">
+        <label for="f-author">Автор</label>
+        <input id="f-author" name="author" type="text" autocomplete="off" placeholder="Только буквы, от 2 до 100 символов">
+        <span class="error" id="e-author"></span>
+      </div>
+
+      <div class="field">
+        <label for="f-genre">Жанр</label>
+        <input id="f-genre" name="genre" type="text" autocomplete="off" placeholder="От 2 до 50 символов">
+        <span class="error" id="e-genre"></span>
+      </div>
+
+      <div class="field">
+        <label for="f-pages">Количество страниц</label>
+        <input id="f-pages" name="pages" type="number" min="1" max="10000" step="1" placeholder="1–10000">
+        <span class="error" id="e-pages"></span>
+      </div>
+
+      <div class="field">
+        <label for="f-status">Статус</label>
+        <select id="f-status" name="status">
+          <option value="planned">Планирую</option>
+          <option value="reading">Читаю</option>
+          <option value="read">Прочитано</option>
+        </select>
+        <span class="error" id="e-status"></span>
+      </div>
+
+      <div class="field">
+        <label for="f-rating">Оценка (1–5)</label>
+        <input id="f-rating" name="rating" type="number" min="1" max="5" step="1" placeholder="1–5">
+        <span class="error" id="e-rating"></span>
+      </div>
+
+      <!-- НОВОЕ ПОЛЕ: Загрузка обложки с кастомной кнопкой -->
+      <div class="field">
+        <label>Обложка (необязательно)</label>
+        <div class="upload-wrapper">
+          <button type="button" class="btn" id="btnUploadCover">Выбрать файл</button>
+          <span class="counter" id="coverMessage">Файл не выбран</span>
+          <input type="file" id="f-cover" accept="image/*" hidden>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="f-notes">Заметки</label>
+        <textarea id="f-notes" name="notes" maxlength="1000" placeholder="До 1000 символов"></textarea>
+        <span class="counter" id="notesCounterForm">0 / 1000</span>
+        <span class="error" id="e-notes"></span>
+      </div>
+
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">Добавить книгу</button>
+        <button type="reset" class="btn">Очистить</button>
+        <span class="form-message" id="formMessage"></span>
+      </div>
+    </form>
+  </section>
+
+ <!-- детали книги -->
+  <section id="section-detail" hidden></section>
+
+<!-- статистика -->
+  <section id="section-stats" hidden>
+    <h2>Статистика</h2>
+    <div id="statsContent"></div>
+  </section>
+
+</main>
+
+<script>
+// тема оформления
+const THEME_KEY = 'bookTracker.theme';
+
+function getInitialTheme() {
+  try {
+    const saved = localStorage.getItem(THEME_KEY);
+    if (saved === 'light' || saved === 'dark') return saved;
+  } catch (e) {}
+  if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    return 'dark';
+  }
+  return 'light';
+}
+
+function applyTheme(theme) {
+  document.body.classList.toggle('dark', theme === 'dark');
+  const btn = document.getElementById('themeToggle');
+  if (btn) {
+    btn.textContent = theme === 'dark' ? 'Светлая тема' : 'Темная тема';
+  }
+  try { localStorage.setItem(THEME_KEY, theme); } catch (e) {}
+}
+
+document.getElementById('themeToggle').addEventListener('click', function () {
+  const next = document.body.classList.contains('dark') ? 'light' : 'dark';
+  applyTheme(next);
+});
+
+// хранилище или константы
+const LS_KEY = 'bookTracker.books.v2'; 
+const SS_SELECTED = 'bookTracker.selectedBookId';
+const SS_NOTE_PREFIX = 'bookTracker.noteDraft.';
+
+const STATUS_LABELS = { reading: 'Читаю', read: 'Прочитано', planned: 'Планирую' };
+const MONTHS = ['Янв','Фев','Мар','Апр','Май','Июн','Июл','Авг','Сен','Окт','Ноя','Дек'];
+
+let books = loadBooks();
+let selectedBookId = null;
+let currentCoverBase64 = null;
+
+const state = { status: 'all', genre: 'all', sort: 'date-desc' };
+
+// утилиты
+function uid() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+
+function el(tag, className, text) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text !== undefined && text !== null) node.textContent = text;
+  return node;
+}
+
+function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+
+function progressPercent(book) {
+  const total = book.progress.total || 0;
+  if (!total) return 0;
+  return clamp(Math.round((book.progress.read / total) * 100), 0, 100);
+}
+
+// localStorage
+function loadBooks() {
+  let raw = null;
+  try { raw = localStorage.getItem(LS_KEY); } catch (e) { raw = null; }
+  if (raw === null) return [];
+  try {
+    const data = JSON.parse(raw);
+    return Array.isArray(data) ? data.map(normalizeBook) : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function normalizeBook(b) {
+  const pages = Number(b.pages) || 0;
+  const progress = b.progress || {};
+  return {
+    id: b.id || uid(),
+    title: String(b.title || ''),
+    author: String(b.author || ''),
+    genre: String(b.genre || ''),
+    pages: pages,
+    status: STATUS_LABELS[b.status] ? b.status : 'planned',
+    rating: clamp(Number(b.rating) || 1, 1, 5),
+    notes: String(b.notes || ''),
+    cover: String(b.cover || ''),
+    quotes: Array.isArray(b.quotes) ? b.quotes.map(String) : [],
+    progress: {
+      read: clamp(Number(progress.read) || 0, 0, pages),
+      total: Number(progress.total) || pages
+    },
+    createdAt: Number(b.createdAt) || Date.now(),
+    finishedAt: b.finishedAt ? Number(b.finishedAt) : null
+  };
+}
+
+function saveBooks() {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(books)); } catch (e) {
+    alert('Ошибка сохранения: возможно, превышен лимит памяти браузера.');
+  }
+}
+
+// утилита для сжатия изображения
+function processImageFile(file, callback) {
+  const reader = new FileReader();
+  reader.onload = function (e) {
+    const img = new Image();
+    img.onload = function () {
+      const canvas = document.createElement('canvas');
+      const MAX_WIDTH = 300;
+      const MAX_HEIGHT = 450;
+      let width = img.width;
+      let height = img.height;
+
+      if (width / height > 2 / 3) {
+        if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
+      } else {
+        if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, width, height);
+
+      callback(canvas.toDataURL('image/jpeg', 0.7));
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+// навигация
+function showSection(name) {
+  ['books', 'add', 'stats', 'detail'].forEach(function (s) {
+    document.getElementById('section-' + s).hidden = (s !== name);
+  });
+
+  const activeName = (name === 'detail') ? 'books' : name;
+  document.querySelectorAll('nav button').forEach(function (btn) {
+    btn.classList.toggle('active', btn.dataset.section === activeName);
+  });
+
+  if (name === 'books') renderBooks();
+  if (name === 'stats') renderStats();
+}
+
+document.querySelectorAll('nav button').forEach(function (btn) {
+  btn.addEventListener('click', function () { showSection(btn.dataset.section); });
+});
+
+// список книг
+function renderGenreFilter() {
+  const sel = document.getElementById('filterGenre');
+  const genres = [];
+  books.forEach(function (b) {
+    if (b.genre && genres.indexOf(b.genre) === -1) genres.push(b.genre);
+  });
+  genres.sort(function (a, b) { return a.localeCompare(b, 'ru'); });
+
+  sel.innerHTML = '';
+  const all = el('option', null, 'Все жанры');
+  all.value = 'all';
+  sel.appendChild(all);
+
+  genres.forEach(function (g) {
+    const o = el('option', null, g);
+    o.value = g;
+    sel.appendChild(o);
+  });
+
+  if (state.genre !== 'all' && genres.indexOf(state.genre) === -1) state.genre = 'all';
+  sel.value = state.genre;
+}
+
+function getFilteredBooks() {
+  const list = books.filter(function (b) {
+    if (state.status !== 'all' && b.status !== state.status) return false;
+    if (state.genre !== 'all' && b.genre !== state.genre) return false;
+    return true;
+  });
+
+  const cmp = {
+    'date-desc': function (a, b) { return b.createdAt - a.createdAt; },
+    'date-asc': function (a, b) { return a.createdAt - b.createdAt; },
+    'title-asc': function (a, b) { return a.title.localeCompare(b.title, 'ru'); },
+    'author-asc': function (a, b) { return a.author.localeCompare(b.author, 'ru'); },
+    'rating-desc': function (a, b) { return b.rating - a.rating || b.createdAt - a.createdAt; }
+  }[state.sort] || function (a, b) { return b.createdAt - a.createdAt; };
+
+  return list.sort(cmp);
+}
+
+function coverShade(str) {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) % 997;
+  return h % 22;
+}
+
+function createCoverElement(book, isLarge) {
+  const cover = el('div', 'cover' + (isLarge ? ' cover-lg' : ''));
+  
+  if (book.cover) {
+    cover.style.backgroundImage = `url(${book.cover})`;
+  } else {
+    cover.textContent = (book.title.trim().charAt(0) || '?').toUpperCase();
+    cover.style.setProperty('--shade', String(coverShade(book.title + book.author)));
+  }
+  return cover;
+}
+
+function createBookCard(book) {
+  const card = el('article', 'card');
+  card.dataset.id = book.id;
+  card.addEventListener('click', function () { openDetail(book.id); });
+
+  card.appendChild(createCoverElement(book, false));
+
+  card.appendChild(el('h3', 'card-title', book.title));
+  card.appendChild(el('p', 'card-author', book.author));
+
+  const meta = el('div', 'card-meta');
+  meta.appendChild(el('span', 'badge status-' + book.status, STATUS_LABELS[book.status]));
+  meta.appendChild(el('span', 'badge rating', 'Оценка: ' + book.rating + '/5'));
+  card.appendChild(meta);
+
+  const bar = el('div', 'bar');
+  const fill = el('div', 'bar-fill');
+  fill.style.width = progressPercent(book) + '%';
+  bar.appendChild(fill);
+  card.appendChild(bar);
+
+  card.appendChild(el('div', 'bar-caption',
+    book.progress.read + ' / ' + book.progress.total + ' стр.'));
+
+  return card;
+}
+
+function renderBooks() {
+  renderGenreFilter();
+
+  const list = document.getElementById('bookList');
+  list.innerHTML = '';
+
+  const filtered = getFilteredBooks();
+  if (!filtered.length) {
+    list.appendChild(el('p', 'empty',
+      books.length === 0
+        ? 'Список пуст. Нажмите «Добавить книгу», чтобы начать.'
+        : 'Книг не найдено. Измените фильтры.'));
+    return;
+  }
+
+  filtered.forEach(function (book) {
+    list.appendChild(createBookCard(book));
+  });
+}
+
+document.getElementById('filterStatus').addEventListener('change', function (e) {
+  state.status = e.target.value;
+  renderBooks();
+});
+document.getElementById('filterGenre').addEventListener('change', function (e) {
+  state.genre = e.target.value;
+  renderBooks();
+});
+document.getElementById('sortBy').addEventListener('change', function (e) {
+  state.sort = e.target.value;
+  renderBooks();
+});
+
+// форма и валидация
+const FIELD_NAMES = ['title', 'author', 'genre', 'pages', 'rating', 'notes'];
+
+const validators = {
+  title: function (v) {
+    return /^.{2,200}$/.test(v.trim()) ? true : 'Название: от 2 до 200 символов';
+  },
+  author: function (v) {
+    return /^[A-Za-zА-Яа-яЁё][A-Za-zА-Яа-яЁё\s\-]{1,99}$/.test(v.trim())
+      ? true : 'Автор: только буквы, от 2 до 100 символов';
+  },
+  genre: function (v) {
+    return /^[A-Za-zА-Яа-яЁё][A-Za-zА-Яа-яЁё\s\-]{1,49}$/.test(v.trim())
+      ? true : 'Жанр: от 2 до 50 символов';
+  },
+  pages: function (v) {
+    const n = Number(v);
+    return (v !== '' && Number.isInteger(n) && n >= 1 && n <= 10000)
+      ? true : 'Страницы: целое число от 1 до 10000';
+  },
+  rating: function (v) {
+    const n = Number(v);
+    return (v !== '' && Number.isInteger(n) && n >= 1 && n <= 5)
+      ? true : 'Оценка: целое число от 1 до 5';
+  },
+  notes: function (v) {
+    return v.length <= 1000 ? true : 'Заметки: не более 1000 символов';
+  }
+};
+
+const bookForm = document.getElementById('bookForm');
+
+// ЛОГИКА КАСТОМНОЙ ЗАГРУЗКИ ОБЛОЖКИ В ФОРМЕ
+const btnUploadCover = document.getElementById('btnUploadCover');
+const fileCoverInput = document.getElementById('f-cover');
+const coverMessage = document.getElementById('coverMessage');
+
+btnUploadCover.addEventListener('click', function() {
+  fileCoverInput.click(); // вызываем скрытый инпут
+});
+
+fileCoverInput.addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  
+  coverMessage.textContent = 'Обработка...';
+  processImageFile(file, function(base64) {
+    currentCoverBase64 = base64;
+    coverMessage.textContent = 'Обложка загружена';
+    coverMessage.style.color = 'var(--success)';
+  });
+});
+
+function validateField(name) {
+  const input = bookForm.elements[name];
+  const errorEl = document.getElementById('e-' + name);
+  const result = validators[name](input.value);
+  const ok = result === true;
+  errorEl.textContent = ok ? '' : result;
+  input.classList.toggle('invalid', !ok);
+  return ok;
+}
+
+FIELD_NAMES.forEach(function (name) {
+  const input = bookForm.elements[name];
+  input.addEventListener('input', function () {
+    validateField(name);
+    if (name === 'notes') {
+      document.getElementById('notesCounterForm').textContent =
+        input.value.length + ' / 1000';
+    }
+  });
+  input.addEventListener('blur', function () { validateField(name); });
+});
+
+bookForm.addEventListener('submit', function (e) {
+  e.preventDefault();
+
+  let firstInvalid = null;
+  FIELD_NAMES.forEach(function (name) {
+    const ok = validateField(name);
+    if (!ok && !firstInvalid) firstInvalid = bookForm.elements[name];
+  });
+
+  const message = document.getElementById('formMessage');
+
+  if (firstInvalid) {
+    message.textContent = 'Проверьте выделенные поля.';
+    firstInvalid.focus();
+    return;
+  }
+
+  const pages = Number(bookForm.elements.pages.value);
+  const status = bookForm.elements.status.value;
+
+  const book = normalizeBook({
+    id: uid(),
+    title: bookForm.elements.title.value.trim(),
+    author: bookForm.elements.author.value.trim(),
+    genre: bookForm.elements.genre.value.trim(),
+    pages: pages,
+    status: status,
+    rating: Number(bookForm.elements.rating.value),
+    notes: bookForm.elements.notes.value,
+    cover: currentCoverBase64,
+    quotes: [],
+    progress: { read: status === 'read' ? pages : 0, total: pages },
+    createdAt: Date.now(),
+    finishedAt: status === 'read' ? Date.now() : null
+  });
+
+  books.push(book);
+  saveBooks();
+
+  bookForm.reset();
+  currentCoverBase64 = null;
+  coverMessage.textContent = 'Файл не выбран';
+  coverMessage.style.color = 'var(--muted)';
+  
+  FIELD_NAMES.forEach(function (name) {
+    document.getElementById('e-' + name).textContent = '';
+    bookForm.elements[name].classList.remove('invalid');
+  });
+  document.getElementById('notesCounterForm').textContent = '0 / 1000';
+  message.textContent = 'Книга «' + book.title + '» добавлена.';
+
+  showSection('books');
+});
+
+bookForm.addEventListener('reset', function () {
+  setTimeout(function () {
+    currentCoverBase64 = null;
+    coverMessage.textContent = 'Файл не выбран';
+    coverMessage.style.color = 'var(--muted)';
+    FIELD_NAMES.forEach(function (name) {
+      document.getElementById('e-' + name).textContent = '';
+      bookForm.elements[name].classList.remove('invalid');
+    });
+    document.getElementById('notesCounterForm').textContent = '0 / 1000';
+    document.getElementById('formMessage').textContent = '';
+  }, 0);
+});
+
+// страница книги
+function openDetail(id) {
+  selectedBookId = id;
+  try { sessionStorage.setItem(SS_SELECTED, id); } catch (e) {}
+  renderDetail();
+  showSection('detail');
+}
+
+function closeDetail() {
+  selectedBookId = null;
+  try { sessionStorage.removeItem(SS_SELECTED); } catch (e) {}
+  showSection('books');
+}
+
+function renderDetail() {
+  const root = document.getElementById('section-detail');
+  root.innerHTML = '';
+
+  const book = books.find(function (b) { return b.id === selectedBookId; });
+  if (!book) { showSection('books'); return; }
+
+  const head = el('div', 'row');
+  const back = el('button', 'btn', 'Назад к списку');
+  back.type = 'button';
+  back.addEventListener('click', closeDetail);
+  head.appendChild(back);
+  root.appendChild(head);
+
+  const top = el('div', 'detail-top');
+
+  // блок обложки в деталях
+  const coverContainer = el('div', 'detail-cover-container');
+  coverContainer.style.display = 'flex';
+  coverContainer.style.flexDirection = 'column';
+  coverContainer.style.gap = '10px';
+  coverContainer.style.width = '100%';
+  coverContainer.style.maxWidth = '240px';
+  coverContainer.style.flex = '0 0 auto';
+
+  coverContainer.appendChild(createCoverElement(book, true));
+
+  // кнопка смены обложки
+  const changeCoverBtn = el('button', 'btn', 'Изменить обложку');
+  changeCoverBtn.type = 'button';
+  changeCoverBtn.style.width = '100%';
+  
+  const changeCoverInput = document.createElement('input');
+  changeCoverInput.type = 'file';
+  changeCoverInput.accept = 'image/*';
+  changeCoverInput.hidden = true;
+  
+  changeCoverBtn.addEventListener('click', () => changeCoverInput.click());
+  
+  changeCoverInput.addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    changeCoverBtn.textContent = 'Загрузка...';
+    changeCoverBtn.disabled = true;
+
+    processImageFile(file, function(base64) {
+      book.cover = base64;
+      saveBooks();
+      renderDetail();
+    });
+  });
+
+  coverContainer.appendChild(changeCoverBtn);
+  coverContainer.appendChild(changeCoverInput);
+  
+  top.appendChild(coverContainer);
+
+  // информация
+  const info = el('div', 'detail-info');
+  info.appendChild(el('h2', null, book.title));
+  info.appendChild(el('p', 'card-author', book.author));
+
+  const infoList = el('ul', 'info-list');
+  function addInfo(label, value) {
+    const li = el('li');
+    li.appendChild(el('span', null, label));
+    li.appendChild(document.createTextNode(value));
+    infoList.appendChild(li);
+  }
+  addInfo('Жанр:', book.genre);
+  addInfo('Страниц:', String(book.pages));
+  addInfo('Статус:', STATUS_LABELS[book.status]);
+  addInfo('Оценка:', book.rating + ' / 5');
+  addInfo('Добавлена:', new Date(book.createdAt).toLocaleDateString('ru-RU'));
+  addInfo('Прочитано:', book.progress.read + ' из ' + book.progress.total + ' стр. (' + progressPercent(book) + '%)');
+
+  info.appendChild(infoList);
+  top.appendChild(info);
+  root.appendChild(top);
+
+  // блок: прогресс
+  const progressBlock = el('div', 'detail-block');
+  progressBlock.appendChild(el('h3', null, 'Прогресс чтения'));
+
+  const progressLabel = el('p', 'bar-caption');
+  const bar = el('div', 'bar');
+  const fill = el('div', 'bar-fill');
+  bar.appendChild(fill);
+
+  const controls = el('div', 'progress-controls');
+  const range = document.createElement('input');
+  range.type = 'range';
+  range.min = '0';
+  range.max = String(book.progress.total);
+  range.step = '1';
+  range.value = String(book.progress.read);
+
+  const number = document.createElement('input');
+  number.type = 'number';
+  number.min = '0';
+  number.max = String(book.progress.total);
+  number.step = '1';
+  number.value = String(book.progress.read);
+
+  controls.appendChild(range);
+  controls.appendChild(number);
+  progressBlock.appendChild(progressLabel);
+  progressBlock.appendChild(bar);
+  progressBlock.appendChild(controls);
+  root.appendChild(progressBlock);
+
+  function updateProgressUI() {
+    const pct = progressPercent(book);
+    fill.style.width = pct + '%';
+    progressLabel.textContent = 'Прочитано ' + book.progress.read +
+      ' из ' + book.progress.total + ' стр. — ' + pct + '%';
+  }
+  updateProgressUI();
+
+  function applyProgress(value) {
+    let v = parseInt(value, 10);
+    if (isNaN(v)) v = 0;
+    v = clamp(v, 0, book.progress.total);
+    book.progress.read = v;
+
+    if (v >= book.progress.total && book.progress.total > 0) {
+      if (book.status !== 'read') {
+        book.status = 'read';
+        book.finishedAt = Date.now();
+      }
+    } else if (book.status === 'read' && v < book.progress.total) {
+      book.status = 'reading';
+      book.finishedAt = null;
+    }
+
+    saveBooks();
+    updateProgressUI();
+    range.value = String(v);
+  }
+
+  range.addEventListener('input', function () {
+    number.value = range.value;
+    applyProgress(range.value);
+  });
+  number.addEventListener('input', function () {
+    const v = clamp(parseInt(number.value, 10) || 0, 0, book.progress.total);
+    range.value = String(v);
+    applyProgress(v);
+  });
+  number.addEventListener('change', function () {
+    number.value = String(book.progress.read);
+  });
+
+  // блок: статус
+  const statusBlock = el('div', 'detail-block');
+  statusBlock.appendChild(el('h3', null, 'Статус книги'));
+  const statusField = el('div', 'field');
+  const statusSelect = document.createElement('select');
+  [['planned', 'Планирую'], ['reading', 'Читаю'], ['read', 'Прочитано']].forEach(function (pair) {
+    const o = el('option', null, pair[1]);
+    o.value = pair[0];
+    statusSelect.appendChild(o);
+  });
+  statusSelect.value = book.status;
+  statusSelect.addEventListener('change', function () {
+    book.status = statusSelect.value;
+    if (book.status === 'read') {
+      book.progress.read = book.progress.total;
+      book.finishedAt = Date.now();
+    } else {
+      book.finishedAt = null;
+    }
+    saveBooks();
+    renderDetail();
+  });
+  statusField.appendChild(statusSelect);
+  statusBlock.appendChild(statusField);
+  root.appendChild(statusBlock);
+
+// заметки
+  const notesBlock = el('div', 'detail-block');
+  notesBlock.appendChild(el('h3', null, 'Заметки'));
+
+  const draftKey = SS_NOTE_PREFIX + book.id;
+  const notesArea = document.createElement('textarea');
+  notesArea.maxLength = 1000;
+  notesArea.placeholder = 'До 1000 символов';
+
+  let draft = null;
+  try { draft = sessionStorage.getItem(draftKey); } catch (e) { draft = null; }
+  notesArea.value = (draft !== null) ? draft : book.notes;
+
+  const notesCounter = el('span', 'counter', notesArea.value.length + ' / 1000');
+  notesArea.addEventListener('input', function () {
+    notesCounter.textContent = notesArea.value.length + ' / 1000';
+    try { sessionStorage.setItem(draftKey, notesArea.value); } catch (e) {}
+  });
+
+  const notesRow = el('div', 'row');
+  const saveNotesBtn = el('button', 'btn btn-primary', 'Сохранить заметку');
+  saveNotesBtn.type = 'button';
+  const notesMessage = el('span', 'form-message');
+  saveNotesBtn.addEventListener('click', function () {
+    book.notes = notesArea.value;
+    saveBooks();
+    try { sessionStorage.removeItem(draftKey); } catch (e) {}
+    notesMessage.textContent = 'Сохранено.';
+  });
+
+  notesRow.appendChild(notesCounter);
+  notesRow.appendChild(saveNotesBtn);
+  notesRow.appendChild(notesMessage);
+
+  notesBlock.appendChild(notesArea);
+  notesBlock.appendChild(notesRow);
+  root.appendChild(notesBlock);
+
+// цитаты
+  const quotesBlock = el('div', 'detail-block');
+  quotesBlock.appendChild(el('h3', null, 'Любимые цитаты'));
+
+  const quotesList = el('ul', 'quote-list');
+
+  function renderQuotes() {
+    quotesList.innerHTML = '';
+    if (!book.quotes.length) {
+      quotesList.appendChild(el('li', null, 'Пока нет цитат.'));
+      return;
+    }
+    book.quotes.forEach(function (q, index) {
+      const li = el('li');
+      li.appendChild(el('span', null, '«' + q + '»'));
+      const del = el('button', null, 'Удалить');
+      del.type = 'button';
+      del.addEventListener('click', function () {
+        book.quotes.splice(index, 1);
+        saveBooks();
+        renderQuotes();
+      });
+      li.appendChild(del);
+      quotesList.appendChild(li);
+    });
+  }
+  renderQuotes();
+  quotesBlock.appendChild(quotesList);
+
+  const quoteRow = el('div', 'row');
+  const quoteInput = document.createElement('input');
+  quoteInput.type = 'text';
+  quoteInput.placeholder = 'Текст цитаты';
+  const addQuoteBtn = el('button', 'btn', 'Добавить цитату');
+  addQuoteBtn.type = 'button';
+  addQuoteBtn.addEventListener('click', function () {
+    const text = quoteInput.value.trim();
+    if (!text) return;
+    book.quotes.push(text);
+    saveBooks();
+    quoteInput.value = '';
+    renderQuotes();
+  });
+  quoteRow.appendChild(quoteInput);
+  quoteRow.appendChild(addQuoteBtn);
+  quotesBlock.appendChild(quoteRow);
+  root.appendChild(quotesBlock);
+
+// удаление
+  const dangerBlock = el('div', 'detail-block');
+  const delBtn = el('button', 'btn btn-danger', 'Удалить книгу');
+  delBtn.type = 'button';
+  delBtn.addEventListener('click', function () {
+    if (!confirm('Удалить «' + book.title + '»?')) return;
+    books = books.filter(function (b) { return b.id !== book.id; });
+    saveBooks();
+    try { sessionStorage.removeItem(draftKey); } catch (e) {}
+    closeDetail();
+  });
+  dangerBlock.appendChild(delBtn);
+  root.appendChild(dangerBlock);
+}
+
+// статистика
+function buildBarChart(container, rows) {
+  const max = Math.max(1, rows.reduce(function (m, r) { return Math.max(m, r.value); }, 0));
+
+  rows.forEach(function (r) {
+    const row = el('div', 'chart-row');
+    row.appendChild(el('span', 'chart-label', r.label));
+
+    const track = el('div', 'chart-track');
+    const fill = el('div', 'chart-fill');
+    fill.style.width = (r.value / max * 100) + '%';
+    track.appendChild(fill);
+
+    row.appendChild(track);
+    row.appendChild(el('span', 'chart-value', String(r.value)));
+    container.appendChild(row);
+  });
+}
+
+function renderStats() {
+  const root = document.getElementById('statsContent');
+  root.innerHTML = '';
+
+  const totalBooks = books.length;
+  const totalReadPages = books.reduce(function (s, b) { return s + b.progress.read; }, 0);
+  const totalPages = books.reduce(function (s, b) { return s + b.progress.total; }, 0);
+  const overallPct = totalPages ? Math.round(totalReadPages / totalPages * 100) : 0;
+
+  const currentYear = new Date().getFullYear();
+  const readThisYear = books.filter(function (b) {
+    if (b.status !== 'read') return false;
+    const d = new Date(b.finishedAt || b.createdAt);
+    return d.getFullYear() === currentYear;
+  }).length;
+
+  const rated = books.filter(function (b) { return b.rating >= 1; });
+  const avgRating = rated.length
+    ? (rated.reduce(function (s, b) { return s + b.rating; }, 0) / rated.length)
+    : 0;
+
+  const grid = el('div', 'stats-grid');
+  [
+    ['Всего книг', String(totalBooks)],
+    ['Прочитано страниц', String(totalReadPages)],
+    ['Книг за ' + currentYear + ' год', String(readThisYear)],
+    ['Средний рейтинг', avgRating.toFixed(1) + ' / 5'],
+    ['Общий прогресс', overallPct + '%']
+  ].forEach(function (pair) {
+    const card = el('div', 'stat-card');
+    card.appendChild(el('div', 'stat-value', pair[1]));
+    card.appendChild(el('div', 'stat-label', pair[0]));
+    grid.appendChild(card);
+  });
+  root.appendChild(grid);
+
+  const overallBlock = el('div', 'detail-block');
+  overallBlock.appendChild(el('h3', null, 'Общий прогресс чтения'));
+  const overallBar = el('div', 'bar');
+  const overallFill = el('div', 'bar-fill');
+  overallFill.style.width = overallPct + '%';
+  overallBar.appendChild(overallFill);
+  overallBlock.appendChild(overallBar);
+  overallBlock.appendChild(el('p', 'bar-caption',
+    totalReadPages + ' из ' + totalPages + ' страниц прочитано'));
+  root.appendChild(overallBlock);
+
+  const genreBlock = el('div', 'detail-block');
+  genreBlock.appendChild(el('h3', null, 'Книги по жанрам'));
+
+  const genreMap = {};
+  books.forEach(function (b) {
+    genreMap[b.genre] = (genreMap[b.genre] || 0) + 1;
+  });
+  const genreRows = Object.keys(genreMap).map(function (g) {
+    return { label: g, value: genreMap[g] };
+  }).sort(function (a, b) { return b.value - a.value; });
+
+  if (genreRows.length) {
+    buildBarChart(genreBlock, genreRows);
+  } else {
+    genreBlock.appendChild(el('p', 'bar-caption', 'Нет данных.'));
+  }
+  root.appendChild(genreBlock);
+
+  const monthBlock = el('div', 'detail-block');
+  monthBlock.appendChild(el('h3', null, 'Прочитано книг по месяцам (' + currentYear + ')'));
+
+  const monthCounts = new Array(12).fill(0);
+  books.forEach(function (b) {
+    if (b.status !== 'read') return;
+    const d = new Date(b.finishedAt || b.createdAt);
+    if (d.getFullYear() === currentYear) monthCounts[d.getMonth()] += 1;
+  });
+
+  buildBarChart(monthBlock, MONTHS.map(function (m, i) {
+    return { label: m, value: monthCounts[i] };
+  }));
+  root.appendChild(monthBlock);
+
+  const statusBlock = el('div', 'detail-block');
+  statusBlock.appendChild(el('h3', null, 'Книги по статусу'));
+  const statusRows = ['reading', 'read', 'planned'].map(function (s) {
+    return {
+      label: STATUS_LABELS[s],
+      value: books.filter(function (b) { return b.status === s; }).length
+    };
+  });
+  buildBarChart(statusBlock, statusRows);
+  root.appendChild(statusBlock);
+}
+
+// иницаилизация
+(function init() {
+  applyTheme(getInitialTheme());
+
+  document.getElementById('filterStatus').value = state.status;
+  document.getElementById('sortBy').value = state.sort;
+
+  let savedId = null;
+  try { savedId = sessionStorage.getItem(SS_SELECTED); } catch (e) { savedId = null; }
+
+  if (savedId && books.some(function (b) { return b.id === savedId; })) {
+    openDetail(savedId);
+  } else {
+    renderBooks();
+    showSection('books');
+  }
+})();
+</script>
+
+</body>
+</html>
